@@ -1,0 +1,143 @@
+// Media Timeline — Prisma schema
+// Design notes:
+// - Media = cached, provider-sourced metadata. Fetched once, stored locally.
+// - TimelineEntry = the user's custom watch-order list. Points at a Media row
+//   and carries all user-owned data (order, status, notes, overrides).
+// - MediaType covers movies, full shows, individual seasons, episodes and
+//   specials so the schema doesn't block an episode-level UI later, even
+//   though v1 only exposes Movie/Show/Season/Special in the timeline.
+// - `order` is a Float (not an int) so an entry can be inserted between two
+//   existing ones (e.g. 1.5) without renumbering the whole table.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MediaType {
+  MOVIE
+  SHOW
+  SEASON
+  EPISODE
+  SPECIAL
+}
+
+enum Provider {
+  TMDB
+  TVDB
+  OMDB
+  MANUAL
+}
+
+enum WatchStatus {
+  NOT_WATCHED
+  WATCHING
+  WATCHED
+  SKIPPED
+  REWATCHING
+}
+
+model Media {
+  id               String   @id @default(cuid())
+  type             MediaType
+
+  title            String
+  originalTitle    String?
+  overview         String?
+  poster           String?
+  backdrop         String?
+
+  releaseDate      DateTime?
+  endDate          DateTime?
+  runtime          Int?
+  genres           String[] @default([])
+
+  network          String?
+  productionCompanies String[] @default([])
+  cast             String[] @default([])
+  creators         String[] @default([])
+  director         String?
+  country          String?
+  language         String?
+  rating           Float?
+
+  seasonNumber     Int?
+  episodeNumber    Int?
+  numberOfSeasons  Int?
+  numberOfEpisodes Int?
+
+  provider         Provider @default(MANUAL)
+  tmdbId           String?
+  tvdbId           String?
+  imdbId           String?
+
+  // self-relation: season -> show, episode -> season
+  parentId         String?
+  parent           Media?   @relation("MediaHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children         Media[]  @relation("MediaHierarchy")
+
+  lastFetchedAt    DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  entries          TimelineEntry[]
+
+  @@index([tmdbId])
+  @@index([tvdbId])
+  @@index([imdbId])
+  @@unique([provider, tmdbId, type], map: "uniq_tmdb_type")
+}
+
+model Category {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+  icon        String?
+  color       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  entries     TimelineEntry[]
+}
+
+model TimelineEntry {
+  id          String   @id @default(cuid())
+
+  mediaId     String
+  media       Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  // manual overrides — never clobbered by a metadata refresh unless explicitly requested
+  displayTitle       String?
+  displayDescription String?
+  displayReleaseDate DateTime?
+
+  order       Float
+  status      WatchStatus @default(NOT_WATCHED)
+  required    Boolean     @default(true)
+  manualNext  Boolean     @default(false)
+  notes       String?
+
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([order])
+  @@index([status])
+}
+
+model AuthSession {
+  token     String   @id
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+model AppSetting {
+  key       String @id
+  value     String
+}

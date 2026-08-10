@@ -1,0 +1,51 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-timeline}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-timeline}
+      TMDB_API_KEY: ${TMDB_API_KEY}
+      TVDB_API_KEY: ${TVDB_API_KEY}
+      TVDB_PIN: ${TVDB_PIN}
+      OMDB_API_KEY: ${OMDB_API_KEY}
+      NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Media Timeline}
+      AUTH_USERNAME: ${AUTH_USERNAME}
+      AUTH_PASSWORD: ${AUTH_PASSWORD}
+      AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH}
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-timeline}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-timeline}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-timeline} -d ${POSTGRES_DB:-timeline}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - internal
+    # Intentionally no "ports:" mapping here — Postgres is only reachable
+    # from the app container on the internal network, never from the host.
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  postgres_data:
