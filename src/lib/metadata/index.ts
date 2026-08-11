@@ -5,17 +5,20 @@ import { MediaKind, MetadataProvider, ProviderName } from './types';
 
 export * from './types';
 
-const providers: Record<ProviderName, MetadataProvider> = {
-  TMDB: createTmdbProvider(process.env.TMDB_API_KEY),
-  OMDB: createOmdbProvider(process.env.OMDB_API_KEY),
-  TVDB: createTvdbProvider(process.env.TVDB_API_KEY, process.env.TVDB_PIN),
-};
+function createProviders(): Record<ProviderName, MetadataProvider> {
+  return {
+    TMDB: createTmdbProvider(process.env['TMDB_API_KEY']),
+    OMDB: createOmdbProvider(process.env['OMDB_API_KEY']),
+    TVDB: createTvdbProvider(process.env['TVDB_API_KEY'], process.env['TVDB_PIN']),
+  };
+}
 
 export function getProvider(name: ProviderName): MetadataProvider {
-  return providers[name];
+  return createProviders()[name];
 }
 
 export function listConfiguredProviders(): { name: ProviderName; configured: boolean }[] {
+  const providers = createProviders();
   return (Object.keys(providers) as ProviderName[]).map((name) => ({
     name,
     configured: providers[name].configured,
