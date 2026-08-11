@@ -31,6 +31,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+RUN cp /app/node_modules/prisma/build/prisma_schema_build_bg.wasm \
+       /app/node_modules/.bin/prisma_schema_build_bg.wasm
+
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
