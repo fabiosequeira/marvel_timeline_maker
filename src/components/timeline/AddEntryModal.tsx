@@ -149,20 +149,19 @@ export function AddEntryModal({
             <div className="flex gap-2">
               {PROVIDERS.map((p) => {
                 const cfg = providers.find((x) => x.name === p.value);
-                const disabled = providers.length > 0 && cfg && !cfg.configured;
+                const notConfigured = providers.length > 0 && cfg && !cfg.configured;
                 return (
                   <button
                     key={p.value}
-                    disabled={disabled}
                     onClick={() => setProvider(p.value)}
                     className={`flex-1 rounded-lg border px-3 py-2 text-sm transition-colors ${
                       provider === p.value
                         ? 'border-accent bg-accent-soft text-white'
                         : 'border-base-700 text-base-300 hover:bg-base-800'
-                    } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    } ${notConfigured ? 'opacity-70' : ''}`}
                   >
                     {p.label}
-                    {disabled && <span className="block text-[10px] text-base-500">not configured</span>}
+                    {notConfigured && <span className="block text-[10px] text-base-500">not configured</span>}
                   </button>
                 );
               })}
