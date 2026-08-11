@@ -152,6 +152,7 @@ export function AddEntryModal({
                 const notConfigured = providers.length > 0 && cfg && !cfg.configured;
                 return (
                   <button
+                    type="button"
                     key={p.value}
                     onClick={() => setProvider(p.value)}
                     className={`flex-1 rounded-lg border px-3 py-2 text-sm transition-colors ${
